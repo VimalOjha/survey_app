@@ -1,0 +1,20 @@
+{
+  "questions": [
+    {
+      "type": "text",
+      "input_type": "text"
+    },
+    {
+      "type": "text",
+      "input_type": "text"
+    },
+    {
+      "type": "radio",
+      "options_count": 4
+    },
+    {
+      "type": "multiselect",
+      "options_count": 4
+    }
+  ]
+}

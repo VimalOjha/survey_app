@@ -1,0 +1,4 @@
+enum SurveyStatus{
+  PENDING,
+  SUBMITTED
+}

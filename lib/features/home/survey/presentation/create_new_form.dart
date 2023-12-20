@@ -41,6 +41,12 @@ class _CreateNewFormState extends State<CreateNewForm> {
     }
   }
 
+  Future<bool> _onBackPressed() {
+    BlocProvider.of<SurveyFormBloc>(context)
+        .add(FetchSurveyForms());
+    return Future.value(true);
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<SurveyFormBloc, SurveyFormState>(
@@ -55,40 +61,44 @@ class _CreateNewFormState extends State<CreateNewForm> {
               .show(message: "Failed to create survey, please try again!");
         }
       },
-      child: Scaffold(
-          appBar: AppBar(
-            title: const Text(AppStrings.labelTitleCreateForm),
-          ),
-          body: BlocBuilder<SurveyFormBloc, SurveyFormState>(
-              builder: (context, state) {
-            if (state is SurveyFormLoading) {
-              return const Center(
-                  child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(
-                    height: 5,
-                  ),
-                  Text(AppStrings.labelCreatingFormProgressMessage)
-                ],
-              ));
-            }
+      child: WillPopScope(
+        onWillPop: _onBackPressed,
+        child: Scaffold(
+            appBar: AppBar(
+              title: const Text(AppStrings.labelTitleCreateForm),
 
-            if (allowBuild) {
-              return SingleChildScrollView(
-                child: Column(
+            ),
+            body: BlocBuilder<SurveyFormBloc, SurveyFormState>(
+                builder: (context, state) {
+              if (state is SurveyFormLoading) {
+                return const Center(
+                    child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    NewForm(saveForm: (title, questions) {
-                      saveForm(title, questions);
-                    }),
+                    CircularProgressIndicator(),
+                    SizedBox(
+                      height: 5,
+                    ),
+                    Text(AppStrings.labelCreatingFormProgressMessage)
                   ],
-                ),
-              );
-            }
+                ));
+              }
 
-            return const SizedBox.shrink();
-          })),
+              if (allowBuild) {
+                return SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      NewForm(saveForm: (title, questions) {
+                        saveForm(title, questions);
+                      }),
+                    ],
+                  ),
+                );
+              }
+
+              return const SizedBox.shrink();
+            })),
+      ),
     );
   }
 }

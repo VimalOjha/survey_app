@@ -1,0 +1,4 @@
+enum AuthFlow{
+  login,
+  signup
+}

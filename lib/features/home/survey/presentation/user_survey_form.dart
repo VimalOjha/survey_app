@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:survey_app/configs/utilities/common/presentation/widgets/custom_scorll_physics.dart';
+import 'package:survey_app/configs/utilities/common/presentation/widgets/custom_page_scorll_physics.dart';
 import 'package:survey_app/configs/utilities/common/presentation/widgets/custom_snackbar.dart';
 import 'package:survey_app/configs/utilities/constants/app_strings.dart';
+import 'package:survey_app/configs/utilities/constants/enums/data_state_enum.dart';
 import 'package:survey_app/features/home/survey/application/survey_form_bloc.dart';
 import 'package:survey_app/features/home/survey/application/survey_form_events.dart';
 import 'package:survey_app/features/home/survey/application/survey_form_state.dart';
@@ -10,17 +11,20 @@ import 'package:survey_app/features/home/survey/domain/models/question.dart';
 import 'package:survey_app/features/home/survey/domain/models/user_answer_model.dart';
 
 
-class SurveyFormScreen extends StatefulWidget {
+class UserSurveyForm extends StatefulWidget {
   final List<Question> questions;
   final String title;
+  final int index;
   final String formId;
-  const SurveyFormScreen({super.key, required this.formId, required this.title, required this.questions});
+  const UserSurveyForm({super.key, required this.formId, required this.index, required this.title, required this.questions});
 
   @override
-  _SurveyFormScreenState createState() => _SurveyFormScreenState();
+  State<UserSurveyForm> createState() {
+    return _UserSurveyFormState();
+  }
 }
 
-class _SurveyFormScreenState extends State<SurveyFormScreen> {
+class _UserSurveyFormState extends State<UserSurveyForm> {
   final PageController _pageController = PageController(initialPage: 0);
   int currentIndex = 0;
   Map<String,dynamic> dynamicUserInputMap = {};
@@ -109,19 +113,18 @@ class _SurveyFormScreenState extends State<SurveyFormScreen> {
   void _submitForm() async {
     Map<String, dynamic> formData =
     UserAnswerModel(title: widget.title, questions: widget.questions).toUserSubmitJson(dynamicUserInputMap);
-    BlocProvider.of<SurveyFormBloc>(context).add(SaveUserSurveyInput(widget.formId, formData));
+    context.read<SurveyFormBloc>().add(SaveUserSurveyInput(widget.formId, formData, widget.index));
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocListener<SurveyFormBloc, SurveyFormState>(
         listener: (context, state) {
-          if(state is UserSurveyInputUploaded){
-            BlocProvider.of<SurveyFormBloc>(context).add(ChangeFormStatus(widget.formId, AppStrings.labelSubmitted));
+          if(state.dataState == DataState.loaded){
             Navigator.of(context).pop();
           }
 
-          if(state is SurveyFormFetchFailure){
+          if(state.dataState == DataState.error){
             CustomSnackbar snackbar = CustomSnackbar(context);
             snackbar.show(message: AppStrings.labelFailedToSubmitForm);
           }
@@ -340,7 +343,7 @@ class _SurveyFormScreenState extends State<SurveyFormScreen> {
                                   curve: Curves.ease);
                             }
                           },
-                          child: (state is UserInputUploading)
+                          child: (state.dataState == DataState.loading)
                               ? const Padding(
                             padding: EdgeInsets.all(8.0),
                             child: CircularProgressIndicator(),

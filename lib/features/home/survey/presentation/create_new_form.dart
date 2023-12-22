@@ -1,11 +1,15 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:survey_app/configs/utilities/common/presentation/widgets/custom_snackbar.dart';
 import 'package:survey_app/configs/utilities/constants/app_strings.dart';
+import 'package:survey_app/configs/utilities/constants/enums/data_state_enum.dart';
+import 'package:survey_app/configs/utilities/constants/enums/survey_create_form_state.dart';
 import 'package:survey_app/features/home/survey/application/survey_form_bloc.dart';
 import 'package:survey_app/features/home/survey/application/survey_form_events.dart';
 import 'package:survey_app/features/home/survey/application/survey_form_state.dart';
 import 'package:survey_app/features/home/survey/domain/models/question.dart';
+import 'package:survey_app/features/home/survey/domain/models/survey_form_create_request.dart';
 import 'package:survey_app/features/home/survey/presentation/widgets/new_form_widget.dart';
 
 
@@ -31,13 +35,14 @@ class _CreateNewFormState extends State<CreateNewForm> {
   }
 
   void saveForm(String title, List<Question> questions) async {
-    print(title);
+    debugPrint(title);
     try {
+      SurveyFormCreateRequest createRequest = SurveyFormCreateRequest(title: title,createdAt: Timestamp.now(), questions: questions);
       allowBuild = false;
-      BlocProvider.of<SurveyFormBloc>(context)
-          .add(SaveNewSurveyForm(title, questions));
-    } on Exception catch (e) {
-      print('Failed to save form!');
+      BlocProvider.of<SurveyFormBloc>(context).add(SaveNewSurveyForm(createRequest: createRequest));
+    } on Exception catch (e){
+      debugPrint(e.toString());
+      debugPrint('Failed to save form!');
     }
   }
 
@@ -51,11 +56,11 @@ class _CreateNewFormState extends State<CreateNewForm> {
   Widget build(BuildContext context) {
     return BlocListener<SurveyFormBloc, SurveyFormState>(
       listener: (context, state) {
-        if (state is SurveyFormFetched) {
+        if (state.surveyCreateFormStatus  == SurveyCreateFormStatus.completed) {
           allowBuild = false;
           Navigator.of(context).pop();
         }
-        if (state is SurveyFormFetchFailure) {
+        if (state.dataState == DataState.error) {
           allowBuild = true;
           CustomSnackbar(context)
               .show(message: "Failed to create survey, please try again!");
@@ -70,7 +75,7 @@ class _CreateNewFormState extends State<CreateNewForm> {
             ),
             body: BlocBuilder<SurveyFormBloc, SurveyFormState>(
                 builder: (context, state) {
-              if (state is SurveyFormLoading) {
+              if (state.surveyCreateFormStatus == SurveyCreateFormStatus.uploading) {
                 return const Center(
                     child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,

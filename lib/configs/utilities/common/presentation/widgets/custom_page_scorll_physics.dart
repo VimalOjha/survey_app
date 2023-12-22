@@ -6,7 +6,6 @@ class CustomPageScrollPhysics extends ScrollPhysics {
   const CustomPageScrollPhysics({ required ScrollPhysics parent, required this.allowScroll})
       : super(parent: parent);
 
-  @override
   ScrollPhysics build(ScrollPhysics ancestor) {
     return CustomPageScrollPhysics(parent: parent!.applyTo(ancestor), allowScroll: allowScroll);
   }

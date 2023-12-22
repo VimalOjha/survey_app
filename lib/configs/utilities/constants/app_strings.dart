@@ -1,6 +1,6 @@
 class AppStrings{
   static const String labelName = "Name";
-  static const String errorEnterName = "Please enter at least 4 characters!";
+  static const String errorEnterName = "Name must be at least 4 characters long!";
 
   static const String labelEmailAddress = "Email Address";
   static const String errorEmailAddress = "Please enter a valid email address!";

@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:survey_app/features/home/survey/domain/models/question.dart';
 import 'package:survey_app/features/home/survey/domain/models/survey_form.dart';
+import 'package:survey_app/features/home/survey/domain/models/survey_form_create_request.dart';
 
 
 abstract class SurveyFormEvent extends Equatable {}
@@ -41,12 +41,11 @@ class NewSurveyAdded extends SurveyFormEvent{
 }
 
 class SaveNewSurveyForm extends SurveyFormEvent{
-  final String title;
-  final List<Question> question;
-  SaveNewSurveyForm(this.title, this.question);
+  final SurveyFormCreateRequest createRequest;
+  SaveNewSurveyForm({required this.createRequest});
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [createRequest];
 }
 
 class FetchSurveyConfig extends SurveyFormEvent{
@@ -57,8 +56,9 @@ class FetchSurveyConfig extends SurveyFormEvent{
 class SaveUserSurveyInput extends SurveyFormEvent{
   final String formId;
   final Map<String, dynamic> formData;
+  final int index;
 
-  SaveUserSurveyInput(this.formId, this.formData);
+  SaveUserSurveyInput(this.formId, this.formData, this.index);
   @override
   List<Object?> get props => [];
 }

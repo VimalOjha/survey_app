@@ -1,4 +1,4 @@
-import 'package:survey_app/features/authentication/login/domain/models/user.dart';
+import 'package:survey_app/features/authentication/login/domain/models/user_data.dart';
 
 class UserStorage{
   UserData? _userData;

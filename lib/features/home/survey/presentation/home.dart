@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:provider/provider.dart';
 import 'package:survey_app/configs/utilities/constants/app_strings.dart';
 import 'package:survey_app/features/authentication/login/application/bloc/authentication_bloc.dart';
 import 'package:survey_app/features/authentication/login/application/bloc/authentication_event.dart';
-import 'package:survey_app/features/authentication/login/application/provider/user_data_provider.dart';
+import 'package:survey_app/features/authentication/login/application/bloc/authentication_state.dart';
 import 'package:survey_app/features/home/survey/presentation/widgets/survey_forms_list_widget.dart';
-import '../../../authentication/login/application/provider/user_auth_provider.dart';
+import '../../../authentication/login/presentation/auth.dart';
 
 
 class HomeScreen extends StatefulWidget {
@@ -17,7 +16,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late UserDataProvider _provider;
   @override
   void dispose() {
     super.dispose();
@@ -25,8 +23,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void initState() {
-    _provider = Provider.of<UserDataProvider>(context, listen: false);
-    _provider.getUserData();
     super.initState();
   }
 
@@ -81,28 +77,36 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStrings.labelTitleSurveyForms),
-        actions: [
-          IconButton(
-            onPressed: (){
-              _showLogoutConfirmationDialog(context);
-            },
-            icon: Icon(
-              Icons.exit_to_app,
-              color: Theme.of(context).colorScheme.primary,
+    return BlocListener<AuthenticationBloc, AuthenticationState>(
+      listener: (context, state){
+        if(state.authState == AuthState.unauthenticated) {
+          Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (ctx) => const AuthScreen()));
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text(AppStrings.labelTitleSurveyForms),
+          actions: [
+            IconButton(
+              onPressed: (){
+                _showLogoutConfirmationDialog(context);
+              },
+              icon: Icon(
+                Icons.exit_to_app,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            )
+          ],
+        ),
+        body:  const Column(
+          children:  [
+            Expanded(
+                child: SurveyFormsList()
             ),
-          )
-        ],
-      ),
-      body:  const Column(
-        children:  [
-          Expanded(
-              child: SurveyFormsList()
-          ),
 
-        ],
+          ],
+        ),
       ),
     );
   }

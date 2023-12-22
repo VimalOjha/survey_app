@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:survey_app/configs/utilities/common/presentation/widgets/custom_snackbar.dart';
 import 'package:survey_app/configs/utilities/constants/app_strings.dart';
+import 'package:survey_app/configs/utilities/constants/enums/survey_create_form_state.dart';
 import 'package:survey_app/features/home/survey/application/survey_form_bloc.dart';
 import 'package:survey_app/features/home/survey/application/survey_form_events.dart';
 import 'package:survey_app/features/home/survey/application/survey_form_state.dart';
 import 'package:survey_app/features/home/survey/domain/models/question.dart';
 import 'package:survey_app/features/home/survey/domain/models/survey_config.dart';
+import 'package:survey_app/features/home/survey/presentation/widgets/form_card_type_choice_widget.dart';
+import 'package:survey_app/features/home/survey/presentation/widgets/form_card_type_text_widget.dart';
+import 'package:survey_app/features/home/survey/presentation/widgets/form_text_field_widget.dart';
 
 class NewForm extends StatefulWidget {
   const NewForm({super.key, required this.saveForm});
@@ -18,16 +22,14 @@ class NewForm extends StatefulWidget {
 }
 
 class _NewFormState extends State<NewForm> {
- // late final SurveyDataProvider surveyDataProvider;
   Map<String,dynamic> dynamicQuestionMap = {};
-  List<SurveyConfigModel> configList = [];
   late SurveyFormBloc surveyFormBloc;
   final _titleController = TextEditingController();
   final List<TextEditingController> _questionTextFieldController = [];
   final List<TextEditingController> _questionInstructionTextFieldController = [];
   final List<TextEditingController> _optionsTextFieldController = [];
 
-  void _submit(){
+  void _submit(List<SurveyConfigModel> configList){
     bool hasEmptyQuestions = false;
     bool hasEmptyOptions = false;
 
@@ -73,10 +75,8 @@ class _NewFormState extends State<NewForm> {
   @override
   void initState() {
     super.initState();
-    surveyFormBloc = BlocProvider.of<SurveyFormBloc>(context);
+    surveyFormBloc = context.read();
     surveyFormBloc.add(FetchSurveyConfig());
-    //surveyDataProvider = Provider.of<SurveyDataProvider>(context, listen: false);
-    //surveyDataProvider.loadSurveyConfig();
   }
 
   @override
@@ -110,32 +110,20 @@ class _NewFormState extends State<NewForm> {
             margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
             child: Padding(
               padding: const EdgeInsets.all(8.0),
-              child: TextField(
-                decoration:  InputDecoration(
-                  labelText: AppStrings.labelEnterTitle,
-                    labelStyle: Theme.of(context).textTheme.titleMedium!.copyWith(
-                        color: Theme.of(context).colorScheme.onBackground,
-                        fontWeight: FontWeight.normal
-                    )
-                ),
-                keyboardType: TextInputType.text,
-                maxLength: 30,
-                autocorrect: false,
-                  controller: _titleController,
-                  style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                      color: Theme.of(context).colorScheme.onBackground,
-                  )
+              child: FormTextFieldWidget(
+                labelText: AppStrings.labelEnterTitle,
+                controller: _titleController,
               ),
             ),
           ),
           BlocBuilder<SurveyFormBloc, SurveyFormState>(
               builder:(ctx, state){
-                  if(state is SurveyConfigFormLoading){
+                  if(state.surveyCreateFormStatus == SurveyCreateFormStatus.configLoading){
                     return const CircularProgressIndicator();
-                  } else if(state is FetchedSurveyConfig){
-                    configList = state.list;
+                  } else if(state.surveyCreateFormStatus == SurveyCreateFormStatus.configLoaded && state.configList!.isNotEmpty){
+
                     return Column(
-                      children: state.list
+                      children: state.configList!
                           .asMap()
                           .entries
                           .map((entry) {
@@ -154,50 +142,10 @@ class _NewFormState extends State<NewForm> {
                           return Column(
                             children: [
                               const SizedBox(height: 16,),
-                              Card(
-                                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      TextField(
-                                        decoration: InputDecoration(
-                                            labelText:
-                                            '${AppStrings.labelEnterQuestion} ${index + 1}',
-                                            labelStyle: Theme.of(context).textTheme.titleMedium!.copyWith(
-                                                color: Theme.of(context).colorScheme.onBackground,
-                                                fontWeight: FontWeight.normal
-                                            )
-                                        ),
-                                        controller: textQuestionEditController,
-                                        style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                                          color: Theme.of(context).colorScheme.onBackground,
-                                        ),
-                                      ),
-
-                                      const SizedBox(
-                                        height: 12,
-                                      ),
-                                      TextField(
-                                          decoration:  InputDecoration(
-                                              labelText:
-                                              AppStrings.labelEnterInstruction,
-                                              labelStyle: Theme.of(context).textTheme.titleMedium!.copyWith(
-                                                  color: Theme.of(context).colorScheme.onBackground,
-                                                  fontWeight: FontWeight.normal
-                                              )
-                                          ),
-                                          controller: textQuestionInstructionEditController,
-                                          style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                                              color: Theme.of(context).colorScheme.onBackground,
-                                              fontWeight: FontWeight.normal
-                                          )
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
+                              FormCardTypeTextWidget(
+                                  controllerQuestion: textQuestionEditController,
+                                  controllerInstruction: textQuestionInstructionEditController,
+                                  index: index),
                             ],
                           );
                         }
@@ -220,58 +168,11 @@ class _NewFormState extends State<NewForm> {
                           return Column(
                             children: [
                               const SizedBox(height: 16,),
-                              Card(
-                                margin: const EdgeInsets.all(8),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(AppStrings.labelSingleChoiceQuestion),
-                                      const SizedBox(
-                                        height: 12,
-                                      ),
-                                      TextField(
-                                          decoration: InputDecoration(
-                                              labelText:
-                                              '${AppStrings.labelEnterQuestion} ${index + 1}',
-                                              labelStyle: Theme.of(context).textTheme.titleMedium!.copyWith(
-                                                  color: Theme.of(context).colorScheme.onBackground,
-                                                  fontWeight: FontWeight.normal
-                                              )
-                                          ),
-                                          controller: textQuestionEditController,
-                                          style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                                            color: Theme.of(context).colorScheme.onBackground,
-                                          )
-                                      ),
-                                      const SizedBox(
-                                        height: 20,
-                                      ),
-                                      const Text(AppStrings.labelEnterOptions),
-
-                                      for (var i = 0; i < question.optionsCount; i++) ...[
-                                        TextField(
-                                            decoration: InputDecoration(
-                                                labelText: "${AppStrings.labelOption} ${i + 1}"
-                                            ),
-                                            controller: optionsList[i],
-                                            keyboardType: TextInputType.text,
-                                            style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                                                color: Theme.of(context).colorScheme.onBackground,
-                                                fontWeight: FontWeight.normal
-                                            )
-                                        ),
-                                        const SizedBox(
-                                          height: 8,
-                                        ),
-                                      ]
-                                    ],
-                                  ),
-                                ),
-                              ),
-
-
+                              FormCardTypeChoiceWidget(
+                                  labelText: AppStrings.labelSingleChoiceQuestion,
+                                  controller: textQuestionEditController,
+                                  index: index,
+                                  optionsList: optionsList),
                             ],
                           );
                         }
@@ -297,53 +198,11 @@ class _NewFormState extends State<NewForm> {
                               const SizedBox(
                                 height: 16,
                               ),
-                              Card(
-                                margin: const EdgeInsets.all(8),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(AppStrings.labelMultiChoiceOption),
-                                      const SizedBox(
-                                        height: 12,
-                                      ),
-                                      TextField(
-                                        decoration: InputDecoration(
-                                            labelText:
-                                            '${AppStrings.labelEnterQuestion} ${index + 1}',
-                                            labelStyle: Theme.of(context).textTheme.titleMedium!.copyWith(
-                                                color: Theme.of(context).colorScheme.onBackground,
-                                                fontWeight: FontWeight.normal
-                                            )
-                                        ),
-                                        style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                                          color: Theme.of(context).colorScheme.onBackground,
-                                        ),
-                                        controller: textQuestionEditController,
-                                      ),
-                                      const SizedBox(
-                                        height: 20,
-                                      ),
-                                      const Text(AppStrings.labelEnterOptions),
-                                      for (var i = 0; i < question.optionsCount; i++) ...[
-                                        TextField(
-                                            decoration: InputDecoration(
-                                                labelText: "${AppStrings.labelOption} ${i + 1}"),
-                                            keyboardType: TextInputType.text,
-                                            controller: optionsList[i],
-                                            style: Theme.of(context).textTheme.titleMedium!.copyWith(
-                                                color: Theme.of(context).colorScheme.onBackground,
-                                                fontWeight: FontWeight.normal
-                                            )
-                                        ),
-                                        const SizedBox(
-                                          height: 8,
-                                        ),
-                                      ]
-                                    ],
-                                  ),
-                                ),
+                              FormCardTypeChoiceWidget(
+                                  labelText: AppStrings.labelMultiChoiceOption,
+                                  controller: textQuestionEditController,
+                                  index: index,
+                                  optionsList: optionsList
                               ),
                             ],
                           );
@@ -361,14 +220,14 @@ class _NewFormState extends State<NewForm> {
 
           BlocBuilder<SurveyFormBloc, SurveyFormState>(
               builder:(ctx, state) {
-                if(state is FetchedSurveyConfig){
+                if(state.surveyCreateFormStatus == SurveyCreateFormStatus.configLoaded && state.configList!.isNotEmpty){
                   return Column(
                     children: [
                       const SizedBox(
                         height: 12,
                       ),
                       ElevatedButton(
-                        onPressed: state.list.isEmpty ? null : _submit,
+                        onPressed: state.configList!.isEmpty ? null : (){_submit(state.configList!);},
                         style: ElevatedButton.styleFrom(
                             backgroundColor:
                             Theme.of(context).colorScheme.primaryContainer),

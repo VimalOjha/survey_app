@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:survey_app/configs/utilities/common/presentation/widgets/loading_circular_progress.dart';
+import 'package:survey_app/configs/utilities/common/presentation/widgets/loading_circular.dart';
 import 'package:survey_app/configs/utilities/constants/app_strings.dart';
+import 'package:survey_app/configs/utilities/constants/enums/data_state_enum.dart';
 import 'package:survey_app/core/storage/data/user_storage.dart';
 import 'package:survey_app/features/home/survey/application/survey_form_bloc.dart';
 import 'package:survey_app/features/home/survey/application/survey_form_events.dart';
@@ -29,26 +30,26 @@ class _SurveyFormsListState extends State<SurveyFormsList> {
   @override
   void initState() {
     super.initState();
-    surveyFormBloc = BlocProvider.of<SurveyFormBloc>(context);
+    surveyFormBloc = context.read();
     surveyFormBloc.add(FetchSurveyForms());
   }
   void _addNewForm() {
     Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => const CreateNewForm()));
   }
 
-  _submitForm(String id, String title, List<Question> questions) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (ctx) =>  SurveyFormScreen(formId: id, title: title, questions: questions)));
+  _submitForm(String id, int index,  String title, List<Question> questions) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (ctx) =>  UserSurveyForm(formId: id, index: index, title: title, questions: questions)));
   }
 
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<SurveyFormBloc, SurveyFormState>(
       builder:(context, state){
-        if(state is SurveyFormLoading) {
+        if(state.dataState == DataState.loading) {
             return const LoadingCircular(
                 label: AppStrings.labelProgressLoadingSurveyForms);
         }
-        if(state is SurveyFormFetchFailure)
+        if(state.dataState  == DataState.error || (state.dataState == DataState.loaded && state.surveyFormsList!.isEmpty))
         {
                 return Center(
                   child: Column(
@@ -90,7 +91,7 @@ class _SurveyFormsListState extends State<SurveyFormsList> {
                 );
               }
 
-              if (state is SurveyFormFetched) {
+              if (state.dataState == DataState.loaded && state.surveyFormsList!.isNotEmpty) {
                 return Column(
                   children: [
                     Expanded(
@@ -104,7 +105,7 @@ class _SurveyFormsListState extends State<SurveyFormsList> {
                               margin: const EdgeInsets.all(8),
                               child: InkWell(
                                 onTap: (UserStorage().userData!.isAdmin() || form.isSubmitted()) ? null : () async {
-                                  _submitForm(form.id, form.title, form.questions);
+                                  _submitForm(form.id, index, form.title, form.questions);
                                 },
                                 child: Padding(
                                   padding: const EdgeInsets.all(16.0),

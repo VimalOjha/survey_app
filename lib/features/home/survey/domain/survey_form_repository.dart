@@ -3,31 +3,25 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:survey_app/configs/utilities/constants/app_keys.dart';
 import 'package:survey_app/configs/utilities/constants/app_strings.dart';
-import 'package:survey_app/features/home/survey/domain/models/question.dart';
 import 'package:survey_app/features/home/survey/domain/models/survey_form.dart';
+import 'package:survey_app/features/home/survey/domain/models/survey_form_create_request.dart';
 
 class SurveyFormRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final firestore = FirebaseFirestore.instance;
 
-  Future<SurveyForm> addSurveyForm(String title, List<Question> questions) async {
-    final formReference = firestore.collection('survey_forms').doc();
+  Future<SurveyForm> addSurveyForm(SurveyFormCreateRequest request) async {
+    final formReference = firestore.collection(AppKeys.kCollectionSurveyForms).doc();
+
     try {
-      await formReference.set({
-        'title': title,
-        'createdAt' : Timestamp.now(),
-        'questions': questions.map((question) => {
-          'question': question.questionText,
-          'type': question.type,
-          'label': question.questionLabel,
-          'options': question.options,
-        }).toList(),
-      });
+      await formReference.set(request.toJson());
+
       SurveyForm surveyForm = SurveyForm(
         id: formReference.id,
-        title: title, // Replace with the appropriate field names
-        questions: questions, // Assuming 'questions' is a List of questions
+        title: request.title, // Replace with the appropriate field names
+        questions: request.questions, // Assuming 'questions' is a List of questions
       );
       return surveyForm;
 
@@ -42,12 +36,11 @@ class SurveyFormRepository {
     final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
     try {
-      QuerySnapshot querySnapshot = await firestore.collection("form_json_config").get();
+      QuerySnapshot querySnapshot = await firestore.collection(AppKeys.kCollectionFormJsonConfig).get();
 
       if (querySnapshot.docs.isNotEmpty) {
-        print(querySnapshot.docs[0].data() as Map<String, dynamic> );
         final dynamicData =  querySnapshot.docs[0].data() as Map<String, dynamic> ;
-        return dynamicData["questions"];
+        return dynamicData[AppKeys.kQuestions];
       }else{
         data = await rootBundle.loadString('assets/form_config.json');
       }
@@ -63,15 +56,15 @@ class SurveyFormRepository {
       } catch (e) {
         print('Error adding data to Firestore: $e');
     }*/
-    return dynamicData["questions"];
+    return dynamicData[AppKeys.kQuestions];
   }
 
   Future<bool> submitUserInput(String formId, Map<String, dynamic> formData) async{
    try {
      await firestore
-        .collection('users')
-        .doc(_auth.currentUser!.uid!)
-        .collection('submitted_forms')
+        .collection(AppKeys.kCollectionUsers)
+        .doc(_auth.currentUser!.uid)
+        .collection(AppKeys.kSubmittedForms)
         .doc(formId)
         .set(formData);
 
@@ -86,9 +79,9 @@ class SurveyFormRepository {
   Future<String> getFormStatus(String formId) async {
 
     final docSnapshot = await firestore
-        .collection('users')
+        .collection(AppKeys.kCollectionUsers)
         .doc(_auth.currentUser!.uid)
-        .collection('submitted_forms')
+        .collection(AppKeys.kSubmittedForms)
         .doc(formId)
         .get();
 
@@ -104,8 +97,8 @@ class SurveyFormRepository {
   Future<List<SurveyForm>> loadSurveyForms(List<DocumentSnapshot> currentList, int limit) async {
     try {
       Query query = firestore
-          .collection('survey_forms')
-          .orderBy('createdAt', descending: true);
+          .collection(AppKeys.kCollectionSurveyForms)
+          .orderBy(AppKeys.kCreatedAt, descending: true);
 
       if (currentList.isNotEmpty) {
         query = query.startAfterDocument(currentList.last);
@@ -116,26 +109,12 @@ class SurveyFormRepository {
 
       for (var doc in querySnapshot.docs) {
         Map<String, dynamic> formData = doc.data() as Map<String, dynamic>;
-
-        List<Question> parsedQuestions = List<Question>.from(
-          (formData['questions'] as List).map((questionData) {
-            return Question.fromJson(questionData);
-          }),
-        );
-
         final status = await getFormStatus(doc.id);
-
-        SurveyForm surveyForm = SurveyForm(
-          id: doc.id,
-          title: formData['title'],
-          // Replace with the appropriate field names
-          questions: parsedQuestions,
-          formStatus: status
-        );
-
+        SurveyForm surveyForm = SurveyForm.fromJson(formData);
+        surveyForm.id = doc.id;
+        surveyForm.formStatus = status;
         surveyList.add(surveyForm);
       }
-
 
       return surveyList;
     } catch (e) {

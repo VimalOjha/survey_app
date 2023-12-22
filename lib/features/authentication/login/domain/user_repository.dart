@@ -1,12 +1,10 @@
 import 'dart:convert';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:survey_app/configs/services/storage_service.dart';
-import 'package:survey_app/features/authentication/login/domain/models/user.dart';
-
-
+import 'package:survey_app/configs/services/shared_preferences_service.dart';
+import 'package:survey_app/configs/utilities/constants/app_keys.dart';
+import 'package:survey_app/features/authentication/login/domain/models/user_data.dart';
 
 class UserRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -38,7 +36,7 @@ class UserRepository {
           break;
       // Add more cases for other Firebase Auth error codes as needed
       }
-      throw Exception(errorMessage);
+      throw FirebaseAuthException(code: e.code, message: errorMessage);
     }
   }
 
@@ -69,7 +67,7 @@ class UserRepository {
           break;
       // Add more cases for other Firebase Auth error codes as needed
       }
-      throw Exception(errorMessage);
+      throw FirebaseAuthException(code: e.code, message: errorMessage);
     }
   }
 
@@ -82,7 +80,7 @@ class UserRepository {
   Future<bool> saveUser(String uid, Map<String, dynamic> userdata) async {
     try {
       await _instance
-          .collection('users')
+          .collection(AppKeys.kCollectionUsers)
           .doc(uid)
           .set(userdata);
       return true;
@@ -101,20 +99,16 @@ class UserRepository {
 
       if(userModelJson == null) {
         debugPrint("fetching userdata from firestore");
-        final userDatabyId = await _instance.collection('users')
+        final userDataById = await _instance.collection(AppKeys.kCollectionUsers)
             .doc(currentUser.uid)
             .get();
 
-        userData = UserData(
-            id: currentUser!.uid,
-            name: userDatabyId.data()!['name'],
-            email: userDatabyId.data()!['email'],
-            userType: userDatabyId.data()!['user_type']);
-        debugPrint(jsonEncode(userData!.toJson()));
+        if(userDataById.data() != null) {
+          userData = UserData.fromJson(userDataById.data()!);
+          prefs.saveLoggedInUser(jsonEncode(userData.toJson()));
+        }
 
-        prefs.saveLoggedInUser(jsonEncode(userData!.toJson()));
-
-      }else{
+      } else {
         debugPrint("fetching userdata from preference");
         debugPrint(jsonDecode(userModelJson).toString());
         userData = UserData.fromJson(jsonDecode(userModelJson));
